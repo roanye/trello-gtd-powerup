@@ -93,7 +93,7 @@
     if (!authBtn) return;
 
     authBtn.addEventListener('click', function () {
-      t.getRestApi().authorize({ scope: { read: true, write: true } })
+      t.getRestApi().authorize({ scope: 'read,write', expiration: 'never' })
         .then(function (token) {
           state.apiToken = token;
           hideAuthOverlay();
