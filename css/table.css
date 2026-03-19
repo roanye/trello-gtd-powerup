@@ -1,0 +1,498 @@
+/* ── Reset & Base ───────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #1d2125;
+  --bg-raised:   #22272b;
+  --bg-hover:    #282e33;
+  --bg-input:    #161b22;
+  --bg-card:     #2c333a;
+  --border:      #3a424a;
+  --text:        #b6c2cf;
+  --text-muted:  #7d8b99;
+  --accent:      #579dff;
+  --radius:      4px;
+  --font:        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* ── App Shell ──────────────────────────────────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ── Toolbar ────────────────────────────────────────────────────────────── */
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  z-index: 20;
+}
+
+#filter-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+#toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Toolbar Controls ───────────────────────────────────────────────────── */
+#search-input,
+#filter-section select {
+  height: 32px;
+  padding: 0 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+#search-input { width: 200px; }
+
+#search-input:focus,
+#filter-section select:focus {
+  border-color: var(--accent);
+}
+
+#filter-section select option {
+  background: var(--bg-card);
+}
+
+/* ── Toolbar Buttons ────────────────────────────────────────────────────── */
+.toolbar-btn {
+  height: 32px;
+  padding: 0 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.toolbar-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-muted);
+}
+
+.toolbar-btn.secondary {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+}
+
+.toolbar-btn.secondary:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* ── Column Toggle Dropdown ─────────────────────────────────────────────── */
+#column-toggle {
+  position: relative;
+}
+
+#columns-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 160px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  padding: 6px 0;
+}
+
+#columns-dropdown.hidden { display: none; }
+
+.col-toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text);
+  transition: background 0.1s;
+}
+
+.col-toggle-item:hover { background: var(--bg-hover); }
+
+.col-toggle-item input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ── Loading Overlay ────────────────────────────────────────────────────── */
+#loading-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  z-index: 50;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Table Container ────────────────────────────────────────────────────── */
+#table-container {
+  flex: 1;
+  overflow: auto;
+}
+
+#main-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+/* ── Table Header ───────────────────────────────────────────────────────── */
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-raised);
+}
+
+th {
+  padding: 9px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.th-inner {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sort-icon {
+  font-size: 9px;
+  opacity: 0.35;
+  transition: opacity 0.1s;
+}
+
+th:hover .sort-icon,
+.sort-icon.active {
+  opacity: 1;
+}
+
+.sort-icon.active { color: var(--accent); }
+
+/* ── Table Body ─────────────────────────────────────────────────────────── */
+td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  max-width: 0; /* allows text-overflow to work */
+}
+
+tr:last-child td { border-bottom: none; }
+
+tr:hover td { background: var(--bg-hover); }
+
+/* ── Cell Types ─────────────────────────────────────────────────────────── */
+
+/* Name (link) */
+.cell-name {
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.card-name-link {
+  display: block;
+  color: var(--text);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.card-name-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* Readonly text */
+.cell-readonly {
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Labels */
+.cell-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.label-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Editable cells — click hint */
+.cell-editable {
+  cursor: pointer;
+  position: relative;
+}
+
+.cell-editable:hover::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  pointer-events: none;
+}
+
+/* Generic display span inside editable cells */
+.cell-display {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-height: 18px;
+}
+
+.cell-display.empty::before {
+  content: '—';
+  color: var(--text-muted);
+}
+
+/* Text / tags cell display */
+.cell-text .cell-display,
+.cell-tags .cell-display { font-size: 13px; }
+
+/* Who chips */
+.cell-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.who-chip {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 3px;
+  background: #2b3b5a;
+  color: #9ecbf7;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Inline input */
+.cell-input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 3px 8px;
+  font-size: 13px;
+  font-family: var(--font);
+  outline: none;
+}
+
+/* Inline select */
+.cell-select {
+  width: 100%;
+  background: var(--bg-card);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--text);
+  padding: 3px 6px;
+  font-size: 13px;
+  font-family: var(--font);
+  outline: none;
+  cursor: pointer;
+}
+
+.cell-select option { background: var(--bg-card); }
+
+/* Status / Priority badge */
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+/* Due Date */
+.cell-date {
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.cell-date.due-overdue { color: #f5a623; font-weight: 600; }
+.cell-date.due-complete { color: #4bce97; }
+
+/* Members */
+.cell-members {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.member-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #344563;
+  color: #9ecbf7;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: default;
+}
+
+/* Empty / Error states */
+.empty-state {
+  text-align: center;
+  padding: 56px 24px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.error-state {
+  text-align: center;
+  padding: 56px 24px;
+  color: #f87168;
+  font-size: 14px;
+}
+
+/* ── Auth Overlay ───────────────────────────────────────────────────────── */
+#auth-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+#auth-overlay.hidden { display: none; }
+
+.auth-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 40px 48px;
+  text-align: center;
+  max-width: 420px;
+}
+
+.auth-box h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.auth-box p {
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.auth-note {
+  font-size: 12px;
+  margin-top: 12px;
+  margin-bottom: 0 !important;
+}
+
+/* ── Custom Field Checkbox ──────────────────────────────────────────────── */
+.cf-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.cf-checkbox.checked {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.cf-checkbox:hover { border-color: var(--accent); }

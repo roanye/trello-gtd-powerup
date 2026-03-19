@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>GTD Table View</title>
+  <link rel="stylesheet" href="css/table.css">
+  <script src="https://p.trellocdn.com/power-up.min.js"></script>
+</head>
+<body>
+  <div id="app">
+
+    <div id="toolbar">
+      <div id="filter-section">
+        <input type="text" id="search-input" placeholder="Search cards..." autocomplete="off">
+
+        <select id="list-filter">
+          <option value="">All Lists</option>
+        </select>
+
+        <button id="clear-filters-btn" class="toolbar-btn secondary">Clear Filters</button>
+      </div>
+
+      <div id="toolbar-right">
+        <button id="refresh-btn" class="toolbar-btn secondary" title="Reload board data">&#8635; Refresh</button>
+        <div id="column-toggle">
+          <button id="columns-btn" class="toolbar-btn">Columns</button>
+          <div id="columns-dropdown" class="hidden">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="auth-overlay" class="hidden">
+      <div class="auth-box">
+        <h2>Authorization Required</h2>
+        <p>This Power-Up needs permission to read and write your Trello card data, including Custom Fields.</p>
+        <button id="auth-btn" class="toolbar-btn">Authorize with Trello</button>
+        <p class="auth-note">You only need to do this once.</p>
+      </div>
+    </div>
+
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+      <span>Loading board data...</span>
+    </div>
+
+    <div id="table-container">
+      <table id="main-table">
+        <thead>
+          <tr id="header-row"></tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+  </div>
+  <script src="js/config.js"></script>
+  <script src="js/table.js"></script>
+</body>
+</html>
