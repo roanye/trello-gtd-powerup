@@ -548,7 +548,7 @@ tr:hover .completion-btn {
   position: fixed;
   min-width: 200px;
   max-width: 280px;
-  max-height: 340px;
+  max-height: 420px;
   overflow-y: auto;
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -585,3 +585,54 @@ tr:hover .completion-btn {
 .popover-item:hover { background: var(--bg-hover); }
 
 .popover-item.selected { color: var(--accent); font-weight: 600; }
+
+/* ── Label Editor Rows ──────────────────────────────────────────────────── */
+.label-editor-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+}
+
+.label-editor-cb {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.label-editor-btn {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: filter 0.1s;
+}
+
+.label-editor-btn:hover { filter: brightness(0.85); }
+
+/* ── Popover Search Input ────────────────────────────────────────────────── */
+.popover-search {
+  padding: 8px 10px 4px;
+}
+
+.popover-search input {
+  width: 100%;
+}
+
+.popover-section-label {
+  padding: 6px 10px 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}

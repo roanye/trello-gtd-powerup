@@ -687,42 +687,66 @@
       e.stopPropagation();
       if (_popoverTd === td) { closePopover(); return; }
       openPopover(td, function (popover) {
-        // None option
-        var noneItem = document.createElement('div');
-        noneItem.className = 'popover-item' + (!currentIdValue ? ' selected' : '');
-        noneItem.textContent = '— None —';
-        noneItem.addEventListener('click', function (e) {
-          e.stopPropagation();
-          if (currentIdValue !== '') {
-            currentIdValue = '';
-            saveCustomFieldValue(card, cf, { idValue: '' });
-          }
-          showDisplay();
-          closePopover();
-        });
-        popover.appendChild(noneItem);
+        var searchWrap = document.createElement('div');
+        searchWrap.className = 'popover-search';
+        var searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = 'Search options...';
+        searchInput.className = 'cell-input';
+        searchWrap.appendChild(searchInput);
+        popover.appendChild(searchWrap);
 
-        cf.options.forEach(function (opt) {
-          var item = document.createElement('div');
-          item.className = 'popover-item' + (opt.id === currentIdValue ? ' selected' : '');
-          var badge = document.createElement('span');
-          badge.className = 'status-badge';
-          badge.textContent = opt.value.text;
-          var hex = cfOptionColorToHex(opt.color);
-          badge.style.backgroundColor = hex;
-          badge.style.color = isLightHex(hex) ? '#1d2125' : '#ffffff';
-          item.appendChild(badge);
-          item.addEventListener('click', function (e) {
-            e.stopPropagation();
-            if (opt.id !== currentIdValue) {
-              currentIdValue = opt.id;
-              saveCustomFieldValue(card, cf, { idValue: opt.id });
-            }
-            showDisplay();
-            closePopover();
+        var listEl = document.createElement('div');
+        popover.appendChild(listEl);
+
+        function renderList(filter) {
+          listEl.innerHTML = '';
+          var q = (filter || '').toLowerCase();
+
+          if (!q) {
+            var noneItem = document.createElement('div');
+            noneItem.className = 'popover-item' + (!currentIdValue ? ' selected' : '');
+            noneItem.textContent = '— None —';
+            noneItem.addEventListener('click', function (e) {
+              e.stopPropagation();
+              if (currentIdValue !== '') {
+                currentIdValue = '';
+                saveCustomFieldValue(card, cf, { idValue: '' });
+              }
+              showDisplay();
+              closePopover();
+            });
+            listEl.appendChild(noneItem);
+          }
+
+          cf.options.forEach(function (opt) {
+            if (q && opt.value.text.toLowerCase().indexOf(q) === -1) return;
+            var item = document.createElement('div');
+            item.className = 'popover-item' + (opt.id === currentIdValue ? ' selected' : '');
+            var badge = document.createElement('span');
+            badge.className = 'status-badge';
+            badge.textContent = opt.value.text;
+            var hex = cfOptionColorToHex(opt.color);
+            badge.style.backgroundColor = hex;
+            badge.style.color = isLightHex(hex) ? '#1d2125' : '#ffffff';
+            item.appendChild(badge);
+            item.addEventListener('click', function (e) {
+              e.stopPropagation();
+              if (opt.id !== currentIdValue) {
+                currentIdValue = opt.id;
+                saveCustomFieldValue(card, cf, { idValue: opt.id });
+              }
+              showDisplay();
+              closePopover();
+            });
+            listEl.appendChild(item);
           });
-          popover.appendChild(item);
-        });
+        }
+
+        searchInput.addEventListener('input', function () { renderList(searchInput.value); });
+        searchInput.addEventListener('click', function (e) { e.stopPropagation(); });
+        renderList('');
+        searchInput.focus();
       });
     };
 
@@ -1161,12 +1185,30 @@
         header.textContent = 'Move to list';
         popover.appendChild(header);
 
-        Object.keys(state.listPos)
-          .sort(function (a, b) { return state.listPos[a] - state.listPos[b]; })
-          .forEach(function (listId) {
+        var searchWrap = document.createElement('div');
+        searchWrap.className = 'popover-search';
+        var searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = 'Search lists...';
+        searchInput.className = 'cell-input';
+        searchWrap.appendChild(searchInput);
+        popover.appendChild(searchWrap);
+
+        var listEl = document.createElement('div');
+        popover.appendChild(listEl);
+
+        var sortedListIds = Object.keys(state.listPos)
+          .sort(function (a, b) { return state.listPos[a] - state.listPos[b]; });
+
+        function renderList(filter) {
+          listEl.innerHTML = '';
+          var q = (filter || '').toLowerCase();
+          sortedListIds.forEach(function (listId) {
+            var name = state.lists[listId] || listId;
+            if (q && name.toLowerCase().indexOf(q) === -1) return;
             var item = document.createElement('div');
             item.className = 'popover-item' + (listId === currentListId ? ' selected' : '');
-            item.textContent = state.lists[listId] || listId;
+            item.textContent = name;
             item.addEventListener('click', function (e) {
               e.stopPropagation();
               if (listId !== currentListId) {
@@ -1178,8 +1220,14 @@
               showDisplay();
               closePopover();
             });
-            popover.appendChild(item);
+            listEl.appendChild(item);
           });
+        }
+
+        searchInput.addEventListener('input', function () { renderList(searchInput.value); });
+        searchInput.addEventListener('click', function (e) { e.stopPropagation(); });
+        renderList('');
+        searchInput.focus();
       });
     };
 
@@ -1348,58 +1396,96 @@
       header.textContent = 'Labels';
       popover.appendChild(header);
 
-      if (state.boardLabels.length === 0) {
-        var empty = document.createElement('div');
-        empty.style.padding = '6px 14px';
-        empty.style.color = 'var(--text-muted)';
-        empty.textContent = 'No labels on this board.';
-        popover.appendChild(empty);
-        return;
+      var searchWrap = document.createElement('div');
+      searchWrap.className = 'popover-search';
+      var searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.placeholder = 'Search labels...';
+      searchInput.className = 'cell-input';
+      searchWrap.appendChild(searchInput);
+      popover.appendChild(searchWrap);
+
+      var sectionLabel = document.createElement('div');
+      sectionLabel.className = 'popover-section-label';
+      sectionLabel.textContent = 'Labels';
+      popover.appendChild(sectionLabel);
+
+      var listEl = document.createElement('div');
+      popover.appendChild(listEl);
+
+      function toggleLabel(lbl, checked, cbEl) {
+        if (checked) {
+          apiPost('/cards/' + card.id + '/idLabels', { value: lbl.id })
+            .then(function () {
+              if (!card.labels) card.labels = [];
+              if (!card.labels.some(function (l) { return l.id === lbl.id; })) {
+                card.labels.push({ id: lbl.id, name: lbl.name, color: lbl.color });
+              }
+              onUpdate();
+            })
+            .catch(function (err) { console.error('[GTD] Add label failed', err); cbEl.checked = !checked; });
+        } else {
+          apiDelete('/cards/' + card.id + '/idLabels/' + lbl.id)
+            .then(function () {
+              card.labels = (card.labels || []).filter(function (l) { return l.id !== lbl.id; });
+              onUpdate();
+            })
+            .catch(function (err) { console.error('[GTD] Remove label failed', err); cbEl.checked = !checked; });
+        }
       }
 
-      state.boardLabels.forEach(function (lbl) {
-        var isChecked = (card.labels || []).some(function (l) { return l.id === lbl.id; });
-
-        var item = document.createElement('label');
-        item.className = 'col-toggle-item';
-
-        var cb = document.createElement('input');
-        cb.type    = 'checkbox';
-        cb.checked = isChecked;
-        cb.addEventListener('change', function () {
-          if (cb.checked) {
-            apiPost('/cards/' + card.id + '/idLabels', { value: lbl.id })
-              .then(function () {
-                if (!card.labels) card.labels = [];
-                if (!card.labels.some(function (l) { return l.id === lbl.id; })) {
-                  card.labels.push({ id: lbl.id, name: lbl.name, color: lbl.color });
-                }
-                onUpdate();
-              })
-              .catch(function (err) { console.error('[GTD] Add label failed', err); cb.checked = false; });
-          } else {
-            apiDelete('/cards/' + card.id + '/idLabels/' + lbl.id)
-              .then(function () {
-                card.labels = (card.labels || []).filter(function (l) { return l.id !== lbl.id; });
-                onUpdate();
-              })
-              .catch(function (err) { console.error('[GTD] Remove label failed', err); cb.checked = true; });
-          }
+      function renderList(filter) {
+        listEl.innerHTML = '';
+        var q = (filter || '').toLowerCase();
+        var toShow = state.boardLabels.filter(function (lbl) {
+          return !q || (lbl.name || '').toLowerCase().indexOf(q) !== -1;
         });
 
-        var chip = makeLabelChip(lbl);
-        chip.style.flexShrink = '0';
-
-        item.appendChild(cb);
-        item.appendChild(chip);
-        if (lbl.name) {
-          var nameSpan = document.createElement('span');
-          nameSpan.textContent = lbl.name;
-          nameSpan.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-          item.appendChild(nameSpan);
+        if (toShow.length === 0) {
+          var none = document.createElement('div');
+          none.style.cssText = 'padding:8px 12px;color:var(--text-muted);font-size:13px;';
+          none.textContent = 'No labels found.';
+          listEl.appendChild(none);
+          return;
         }
-        popover.appendChild(item);
-      });
+
+        toShow.forEach(function (lbl) {
+          var isChecked = (card.labels || []).some(function (l) { return l.id === lbl.id; });
+          var hex = LABEL_HEX[lbl.color] || LABEL_HEX['null'];
+
+          var row = document.createElement('div');
+          row.className = 'label-editor-row';
+
+          var cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.checked = isChecked;
+          cb.className = 'label-editor-cb';
+          cb.addEventListener('change', function (e) {
+            e.stopPropagation();
+            toggleLabel(lbl, cb.checked, cb);
+          });
+
+          var btn = document.createElement('div');
+          btn.className = 'label-editor-btn';
+          btn.style.backgroundColor = hex;
+          btn.style.color = isLightHex(hex) ? '#1d2125' : '#ffffff';
+          btn.textContent = lbl.name || '';
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            cb.checked = !cb.checked;
+            toggleLabel(lbl, cb.checked, cb);
+          });
+
+          row.appendChild(cb);
+          row.appendChild(btn);
+          listEl.appendChild(row);
+        });
+      }
+
+      searchInput.addEventListener('input', function () { renderList(searchInput.value); });
+      searchInput.addEventListener('click', function (e) { e.stopPropagation(); });
+      renderList('');
+      searchInput.focus();
     });
   }
 
@@ -1412,47 +1498,71 @@
       header.textContent = 'Members';
       popover.appendChild(header);
 
-      Object.keys(state.members).forEach(function (memberId) {
-        var fullName = state.members[memberId];
-        var isChecked = (card.idMembers || []).indexOf(memberId) !== -1;
+      var searchWrap = document.createElement('div');
+      searchWrap.className = 'popover-search';
+      var searchInput = document.createElement('input');
+      searchInput.type = 'text';
+      searchInput.placeholder = 'Search members...';
+      searchInput.className = 'cell-input';
+      searchWrap.appendChild(searchInput);
+      popover.appendChild(searchWrap);
 
-        var item = document.createElement('label');
-        item.className = 'col-toggle-item';
+      var listEl = document.createElement('div');
+      popover.appendChild(listEl);
 
-        var cb = document.createElement('input');
-        cb.type    = 'checkbox';
-        cb.checked = isChecked;
-        cb.addEventListener('change', function () {
-          if (cb.checked) {
-            apiPost('/cards/' + card.id + '/idMembers', { value: memberId })
-              .then(function () {
-                if (!card.idMembers) card.idMembers = [];
-                if (card.idMembers.indexOf(memberId) === -1) card.idMembers.push(memberId);
-                onUpdate();
-              })
-              .catch(function (err) { console.error('[GTD] Add member failed', err); cb.checked = false; });
-          } else {
-            apiDelete('/cards/' + card.id + '/idMembers/' + memberId)
-              .then(function () {
-                card.idMembers = (card.idMembers || []).filter(function (id) { return id !== memberId; });
-                onUpdate();
-              })
-              .catch(function (err) { console.error('[GTD] Remove member failed', err); cb.checked = true; });
-          }
+      var allMemberIds = Object.keys(state.members);
+
+      function renderList(filter) {
+        listEl.innerHTML = '';
+        var q = (filter || '').toLowerCase();
+        allMemberIds.forEach(function (memberId) {
+          var fullName = state.members[memberId];
+          if (q && fullName.toLowerCase().indexOf(q) === -1) return;
+          var isChecked = (card.idMembers || []).indexOf(memberId) !== -1;
+
+          var item = document.createElement('label');
+          item.className = 'col-toggle-item';
+
+          var cb = document.createElement('input');
+          cb.type    = 'checkbox';
+          cb.checked = isChecked;
+          cb.addEventListener('change', function () {
+            if (cb.checked) {
+              apiPost('/cards/' + card.id + '/idMembers', { value: memberId })
+                .then(function () {
+                  if (!card.idMembers) card.idMembers = [];
+                  if (card.idMembers.indexOf(memberId) === -1) card.idMembers.push(memberId);
+                  onUpdate();
+                })
+                .catch(function (err) { console.error('[GTD] Add member failed', err); cb.checked = false; });
+            } else {
+              apiDelete('/cards/' + card.id + '/idMembers/' + memberId)
+                .then(function () {
+                  card.idMembers = (card.idMembers || []).filter(function (id) { return id !== memberId; });
+                  onUpdate();
+                })
+                .catch(function (err) { console.error('[GTD] Remove member failed', err); cb.checked = true; });
+            }
+          });
+
+          var initials = fullName.split(' ').map(function (n) { return n[0]; }).join('').toUpperCase().slice(0, 2);
+          var avatar = document.createElement('span');
+          avatar.className = 'member-avatar';
+          avatar.textContent = initials;
+          avatar.title = fullName;
+          avatar.style.flexShrink = '0';
+
+          item.appendChild(cb);
+          item.appendChild(avatar);
+          item.appendChild(document.createTextNode(' ' + fullName));
+          listEl.appendChild(item);
         });
+      }
 
-        var initials = fullName.split(' ').map(function (n) { return n[0]; }).join('').toUpperCase().slice(0, 2);
-        var avatar = document.createElement('span');
-        avatar.className = 'member-avatar';
-        avatar.textContent = initials;
-        avatar.title = fullName;
-        avatar.style.flexShrink = '0';
-
-        item.appendChild(cb);
-        item.appendChild(avatar);
-        item.appendChild(document.createTextNode(' ' + fullName));
-        popover.appendChild(item);
-      });
+      searchInput.addEventListener('input', function () { renderList(searchInput.value); });
+      searchInput.addEventListener('click', function (e) { e.stopPropagation(); });
+      renderList('');
+      searchInput.focus();
     });
   }
 
