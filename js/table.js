@@ -393,7 +393,9 @@
     switch (col.type) {
 
       case 'link':
-        td.className = 'cell-name';
+        td.className = '';
+        var nameWrapper = document.createElement('div');
+        nameWrapper.className = 'cell-name';
         var completeBtn = document.createElement('span');
         completeBtn.className = 'completion-btn';
         completeBtn.title = 'Archive card';
@@ -409,8 +411,9 @@
           e.preventDefault();
           t.showCard(card.id);
         });
-        td.appendChild(completeBtn);
-        td.appendChild(nameLink);
+        nameWrapper.appendChild(completeBtn);
+        nameWrapper.appendChild(nameLink);
+        td.appendChild(nameWrapper);
         break;
 
       case 'readonly':
