@@ -265,6 +265,7 @@ tr:hover td { background: var(--bg-hover); }
 
 /* Name (link) */
 .cell-name {
+  width: 100%;
   white-space: nowrap;
   overflow: hidden;
   display: flex;
