@@ -259,6 +259,8 @@ td {
 
 tr:last-child td { border-bottom: none; }
 
+tr { height: 38px; }
+
 tr:hover td { background: var(--bg-hover); }
 
 /* ── Cell Types ─────────────────────────────────────────────────────────── */
@@ -447,8 +449,9 @@ tr:hover .completion-btn {
 .cell-members {
   display: flex;
   gap: 4px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
+  overflow: hidden;
 }
 
 .member-avatar {
