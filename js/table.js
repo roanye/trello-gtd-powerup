@@ -543,8 +543,7 @@
     }
 
     function closeEditor() {
-      isEditing = false;
-      // Brief cooldown so the blur+click race can't immediately reopen
+      // Keep isEditing=true until timeout — blocks the blur+click re-entry race
       clearTimeout(cooldownTimer);
       cooldownTimer = setTimeout(function () { isEditing = false; }, 350);
       showDisplay();
