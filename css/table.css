@@ -259,7 +259,7 @@ td {
 
 tr:last-child td { border-bottom: none; }
 
-tr { height: 38px; }
+tr { height: 56px; }
 
 tr:hover td { background: var(--bg-hover); }
 
@@ -268,11 +268,11 @@ tr:hover td { background: var(--bg-hover); }
 /* Name (link) */
 .cell-name {
   width: 100%;
-  white-space: nowrap;
   overflow: hidden;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
+  padding-top: 2px;
 }
 
 /* Completion circle — hidden until row hover */
@@ -297,15 +297,16 @@ tr:hover .completion-btn {
 }
 
 .card-name-link {
-  display: block;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   color: var(--text);
   text-decoration: none;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-weight: 500;
   flex: 1;
   min-width: 0;
+  line-height: 1.4;
 }
 
 .card-name-link:hover {
@@ -324,10 +325,12 @@ tr:hover .completion-btn {
 /* Labels */
 .cell-labels {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 4px;
-  align-items: center;
+  align-items: flex-start;
+  align-content: flex-start;
   overflow: hidden;
+  padding-top: 2px;
 }
 
 .label-chip {
@@ -449,9 +452,11 @@ tr:hover .completion-btn {
 .cell-members {
   display: flex;
   gap: 4px;
-  flex-wrap: nowrap;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
   overflow: hidden;
+  padding-top: 2px;
 }
 
 .member-avatar {
