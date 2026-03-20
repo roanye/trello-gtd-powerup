@@ -278,9 +278,10 @@ tr:hover td { background: var(--bg-hover); }
 /* Labels */
 .cell-labels {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
   align-items: center;
+  overflow: hidden;
 }
 
 .label-chip {
@@ -290,6 +291,7 @@ tr:hover td { background: var(--bg-hover); }
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
+  min-width: 40px;
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;

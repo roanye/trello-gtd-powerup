@@ -547,9 +547,9 @@
       });
     }
 
-    td.addEventListener('click', function () {
+    td.onclick = function () {
       if (!td.querySelector('input')) showEditor();
-    });
+    };
 
     showDisplay();
   }
@@ -595,9 +595,9 @@
       });
     }
 
-    td.addEventListener('click', function () {
+    td.onclick = function () {
       if (!td.querySelector('input')) showEditor();
-    });
+    };
 
     showDisplay();
   }
@@ -652,32 +652,30 @@
       td.appendChild(select);
       select.focus();
 
+      var committed = false;
       function commit() {
+        if (committed) return;
+        committed = true;
         var nextIdValue = select.value;
         if (nextIdValue !== currentIdValue) {
           currentIdValue = nextIdValue;
           var payload = nextIdValue ? { idValue: nextIdValue } : { idValue: '' };
           saveCustomFieldValue(card, cf, payload);
-          // Re-render the cell after state update
-          renderCell(td, card, { id: 'cf_' + cf.id, type: 'customField', cf: cf });
-        } else {
-          showDisplay();
         }
+        showDisplay();
       }
 
       select.addEventListener('change', commit);
-      select.addEventListener('blur', function () {
-        if (td.querySelector('select')) commit();
-      });
+      select.addEventListener('blur', commit);
       select.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') { select.value = currentIdValue; select.blur(); }
+        if (e.key === 'Escape') { committed = true; select.value = currentIdValue; select.blur(); showDisplay(); }
         e.stopPropagation();
       });
     }
 
-    td.addEventListener('click', function () {
+    td.onclick = function () {
       if (!td.querySelector('select')) showEditor();
-    });
+    };
 
     showDisplay();
   }
@@ -695,11 +693,11 @@
       td.appendChild(box);
     }
 
-    td.addEventListener('click', function () {
+    td.onclick = function () {
       checked = !checked;
       saveCustomFieldValue(card, cf, { value: { checked: checked ? 'true' : 'false' } });
       showDisplay();
-    });
+    };
 
     showDisplay();
   }
@@ -761,7 +759,7 @@
     var hex = LABEL_HEX[label.color] || LABEL_HEX['null'];
     chip.style.backgroundColor = hex;
     chip.style.color = isLightHex(hex) ? '#1d2125' : '#ffffff';
-    chip.textContent = label.name || label.color || '';
+    chip.textContent = label.name || '';
     chip.title = label.name || '';
     return chip;
   }
