@@ -13,11 +13,11 @@
   var TRELLO_API = 'https://api.trello.com/1';
 
   var STANDARD_COLUMNS = [
-    { id: 'name',    label: 'Name',     visible: true,  sortable: true,  type: 'link',     minWidth: 260, native: true },
-    { id: 'list',    label: 'List',     visible: true,  sortable: true,  type: 'list-edit', minWidth: 140, native: true },
-    { id: 'labels',  label: 'Labels',   visible: true,  sortable: false, type: 'labels',   minWidth: 180, native: true },
-    { id: 'due',     label: 'Due Date', visible: true,  sortable: true,  type: 'date',     minWidth: 100, native: true },
-    { id: 'members', label: 'Members',  visible: false, sortable: false, type: 'members',  minWidth: 120, native: true }
+    { id: 'name',    label: 'Name',     visible: true,  sortable: true,  type: 'link',      colPct: null, minWidth: 200, native: true },
+    { id: 'list',    label: 'List',     visible: true,  sortable: true,  type: 'list-edit', colPct: 12,   minWidth: 110, native: true },
+    { id: 'labels',  label: 'Labels',   visible: true,  sortable: false, type: 'labels',    colPct: 14,   minWidth: 120, native: true },
+    { id: 'due',     label: 'Due Date', visible: true,  sortable: true,  type: 'date',      colPct: 10,   minWidth: 90,  native: true },
+    { id: 'members', label: 'Members',  visible: false, sortable: false, type: 'members',   colPct: 9,    minWidth: 80,  native: true }
   ];
 
   // Trello label color name → hex.
@@ -283,7 +283,8 @@
         visible:  prefs[colId] !== undefined ? prefs[colId] : true,
         sortable: true,
         type:     'customField',
-        minWidth: 150,
+        colPct:   11,
+        minWidth: 100,
         native:   false,
         cf:       cf
       });
@@ -317,12 +318,12 @@
     visibleColumns().forEach(function (col) {
       var th = document.createElement('th');
       th.dataset.colId = col.id;
-      if (col.id === 'name') {
-        // Name column expands to fill remaining space
-        th.style.minWidth = col.minWidth + 'px';
+      if (col.colPct) {
+        // Percentage width scales across screen sizes; pixel min prevents collapse
+        th.style.width = 'clamp(' + col.minWidth + 'px, ' + col.colPct + '%, ' + (col.minWidth * 2) + 'px)';
       } else {
-        // Fixed-width columns — locks layout so DOM mutations don't trigger relayout
-        th.style.width = col.minWidth + 'px';
+        // Name column: no explicit width, fills whatever remains
+        th.style.minWidth = col.minWidth + 'px';
       }
 
       var inner = document.createElement('div');
