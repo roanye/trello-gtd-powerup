@@ -13,9 +13,12 @@
       <div id="filter-section">
         <input type="text" id="search-input" placeholder="Search cards..." autocomplete="off">
 
-        <select id="list-filter">
-          <option value="">All Lists</option>
-        </select>
+        <div id="list-filter-wrap" style="position:relative;">
+          <button id="list-filter-btn" class="toolbar-btn">All Lists ▾</button>
+          <div id="list-filter-dropdown" class="hidden">
+            <!-- Populated dynamically after data loads -->
+          </div>
+        </div>
 
         <button id="clear-filters-btn" class="toolbar-btn secondary">Clear Filters</button>
       </div>

@@ -48,7 +48,7 @@
     columns:        [],   // built dynamically after load
     columnPrefs:    {},   // colId → visible boolean (saved to t.set member private)
     sort:           { column: null, dir: 'asc' },
-    filters:        { search: '', list: '' },
+    filters:        { search: '', lists: [] },  // lists: array of selected list IDs
     apiToken:       null
   };
 
@@ -290,6 +290,7 @@
 
   function buildUI() {
     attachToolbarListeners();
+    buildListFilterDropdown();
     renderTable();
     buildColumnDropdown();
   }
@@ -393,6 +394,12 @@
 
       case 'link':
         td.className = 'cell-name';
+        var completeBtn = document.createElement('span');
+        completeBtn.className = 'completion-btn';
+        completeBtn.title = 'Archive card';
+        completeBtn.onclick = (function (c) {
+          return function (e) { e.stopPropagation(); archiveCard(c); };
+        }(card));
         var nameLink = document.createElement('a');
         nameLink.className = 'card-name-link';
         nameLink.href = '#';
@@ -402,6 +409,7 @@
           e.preventDefault();
           t.showCard(card.id);
         });
+        td.appendChild(completeBtn);
         td.appendChild(nameLink);
         break;
 
@@ -814,8 +822,8 @@
       });
     }
 
-    if (f.list) {
-      cards = cards.filter(function (card) { return card.idList === f.list; });
+    if (f.lists && f.lists.length > 0) {
+      cards = cards.filter(function (card) { return f.lists.indexOf(card.idList) !== -1; });
     }
 
     if (state.sort.column) {
@@ -897,22 +905,18 @@
       });
     }
 
-    var listSelect = document.getElementById('list-filter');
-    if (listSelect) {
-      listSelect.addEventListener('change', function () {
-        state.filters.list = this.value;
-        renderTableBody();
-      });
-    }
-
     var clearBtn = document.getElementById('clear-filters-btn');
     if (clearBtn) {
       clearBtn.addEventListener('click', function () {
-        state.filters = { search: '', list: '' };
+        state.filters = { search: '', lists: [] };
         var si = document.getElementById('search-input');
         if (si) si.value = '';
-        var ls = document.getElementById('list-filter');
-        if (ls) ls.value = '';
+        updateListFilterBtn();
+        // Uncheck all list checkboxes
+        var dd = document.getElementById('list-filter-dropdown');
+        if (dd) {
+          dd.querySelectorAll('input[type="checkbox"]').forEach(function (cb) { cb.checked = false; });
+        }
         renderTableBody();
       });
     }
@@ -924,6 +928,7 @@
         loadData()
           .then(function () {
             showLoading(false);
+            buildListFilterDropdown();
             renderTable();
             buildColumnDropdown();
           })
@@ -983,6 +988,95 @@
         e.stopPropagation();
       });
     }
+  }
+
+  // ─── List Filter Multi-Select Dropdown ───────────────────────────────────
+
+  function buildListFilterDropdown() {
+    var btn      = document.getElementById('list-filter-btn');
+    var dropdown = document.getElementById('list-filter-dropdown');
+    if (!btn || !dropdown) return;
+
+    dropdown.innerHTML = '';
+
+    // Build a checkbox per list in board order
+    Object.keys(state.listPos)
+      .sort(function (a, b) { return state.listPos[a] - state.listPos[b]; })
+      .forEach(function (listId) {
+        var lbl = document.createElement('label');
+        lbl.className = 'col-toggle-item';
+
+        var cb = document.createElement('input');
+        cb.type    = 'checkbox';
+        cb.value   = listId;
+        cb.checked = state.filters.lists.indexOf(listId) !== -1;
+
+        cb.addEventListener('change', function () {
+          if (cb.checked) {
+            if (state.filters.lists.indexOf(listId) === -1) {
+              state.filters.lists.push(listId);
+            }
+          } else {
+            state.filters.lists = state.filters.lists.filter(function (id) { return id !== listId; });
+          }
+          updateListFilterBtn();
+          renderTableBody();
+        });
+
+        lbl.appendChild(cb);
+        lbl.appendChild(document.createTextNode(' ' + (state.lists[listId] || listId)));
+        dropdown.appendChild(lbl);
+      });
+
+    // Attach toggle listeners once
+    if (!btn.dataset.listFilterListenerAttached) {
+      btn.dataset.listFilterListenerAttached = 'true';
+
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dropdown.classList.toggle('hidden');
+      });
+
+      document.addEventListener('click', function () {
+        dropdown.classList.add('hidden');
+      });
+
+      dropdown.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+  }
+
+  function updateListFilterBtn() {
+    var btn = document.getElementById('list-filter-btn');
+    if (!btn) return;
+    var sel = state.filters.lists;
+    if (sel.length === 0) {
+      btn.textContent = 'All Lists ▾';
+    } else if (sel.length === 1) {
+      btn.textContent = (state.lists[sel[0]] || 'List') + ' ▾';
+    } else {
+      btn.textContent = sel.length + ' Lists ▾';
+    }
+  }
+
+  // ─── Card Archive (Complete) ──────────────────────────────────────────────
+
+  function archiveCard(card) {
+    var url = TRELLO_API + '/cards/' + card.id
+      + '?key=' + GTD_CONFIG.appKey + '&token=' + state.apiToken;
+
+    fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ closed: true })
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        state.cards = state.cards.filter(function (c) { return c.id !== card.id; });
+        renderTableBody();
+      })
+      .catch(function (err) {
+        console.error('[GTD Table] Archive failed', err);
+      });
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
