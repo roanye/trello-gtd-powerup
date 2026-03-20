@@ -317,7 +317,13 @@
     visibleColumns().forEach(function (col) {
       var th = document.createElement('th');
       th.dataset.colId = col.id;
-      th.style.minWidth = col.minWidth + 'px';
+      if (col.id === 'name') {
+        // Name column expands to fill remaining space
+        th.style.minWidth = col.minWidth + 'px';
+      } else {
+        // Fixed-width columns — locks layout so DOM mutations don't trigger relayout
+        th.style.width = col.minWidth + 'px';
+      }
 
       var inner = document.createElement('div');
       inner.className = 'th-inner';

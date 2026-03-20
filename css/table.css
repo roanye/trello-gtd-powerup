@@ -206,7 +206,7 @@ html, body {
 #main-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: auto;
+  table-layout: fixed;
 }
 
 /* ── Table Header ───────────────────────────────────────────────────────── */
@@ -254,7 +254,7 @@ td {
   padding: 7px 12px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
-  max-width: 0; /* allows text-overflow to work */
+  overflow: hidden;
 }
 
 tr:last-child td { border-bottom: none; }
