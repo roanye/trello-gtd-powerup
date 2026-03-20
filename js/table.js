@@ -14,7 +14,7 @@
 
   var STANDARD_COLUMNS = [
     { id: 'name',    label: 'Name',     visible: true,  sortable: true,  type: 'link',     minWidth: 260, native: true },
-    { id: 'list',    label: 'List',     visible: true,  sortable: true,  type: 'readonly', minWidth: 140, native: true },
+    { id: 'list',    label: 'List',     visible: true,  sortable: true,  type: 'list-edit', minWidth: 140, native: true },
     { id: 'labels',  label: 'Labels',   visible: true,  sortable: false, type: 'labels',   minWidth: 180, native: true },
     { id: 'due',     label: 'Due Date', visible: true,  sortable: true,  type: 'date',     minWidth: 100, native: true },
     { id: 'members', label: 'Members',  visible: false, sortable: false, type: 'members',  minWidth: 120, native: true }
@@ -49,8 +49,11 @@
     columnPrefs:    {},   // colId → visible boolean (saved to t.set member private)
     sort:           { column: null, dir: 'asc' },
     filters:        { search: '', lists: [] },  // lists: array of selected list IDs
-    apiToken:       null
+    apiToken:       null,
+    boardLabels:    []   // all labels defined on the board
   };
+
+  var _popoverTd = null;
 
   // ─── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -183,6 +186,8 @@
           + '&list_fields=id,name,pos'
           + '&members=all'
           + '&member_fields=id,fullName,username'
+          + '&labels=all'
+          + '&label_fields=id,name,color'
           + '&key=' + GTD_CONFIG.appKey
           + '&token=' + state.apiToken;
 
@@ -252,6 +257,7 @@
           });
         }
 
+        state.boardLabels = (board.labels || []);
         buildColumns();
       });
   }
@@ -293,6 +299,7 @@
     buildListFilterDropdown();
     renderTable();
     buildColumnDropdown();
+    setupPopoverDismiss();
   }
 
   function renderTable() {
@@ -416,58 +423,24 @@
         td.appendChild(nameWrapper);
         break;
 
-      case 'readonly':
-        td.className = 'cell-readonly';
-        td.title = state.lists[card.idList] || '';
-        td.textContent = state.lists[card.idList] || '';
+      case 'list-edit':
+        td.className = 'cell-editable';
+        attachListEditor(td, card);
         break;
 
       case 'labels':
-        td.className = '';
-        var labelsWrap = document.createElement('div');
-        labelsWrap.className = 'cell-labels';
-        (card.labels || []).forEach(function (lbl) {
-          labelsWrap.appendChild(makeLabelChip(lbl));
-        });
-        td.appendChild(labelsWrap);
+        td.className = 'cell-editable';
+        attachLabelsEditor(td, card);
         break;
 
       case 'date':
-        td.className = 'cell-date';
-        if (card.due) {
-          var d = new Date(card.due);
-          td.textContent = d.toLocaleDateString(undefined, {
-            month: 'short', day: 'numeric', year: 'numeric'
-          });
-          if (card.dueComplete) {
-            td.classList.add('due-complete');
-          } else if (d < new Date()) {
-            td.classList.add('due-overdue');
-          }
-        } else {
-          td.textContent = '';
-        }
+        td.className = 'cell-editable';
+        attachDateEditor(td, card);
         break;
 
       case 'members':
-        td.className = '';
-        var membersWrap = document.createElement('div');
-        membersWrap.className = 'cell-members';
-        (card.idMembers || []).forEach(function (mid) {
-          var fullName = state.members[mid];
-          if (!fullName) return;
-          var initials = fullName.split(' ')
-            .map(function (n) { return n[0]; })
-            .join('')
-            .toUpperCase()
-            .slice(0, 2);
-          var avatar = document.createElement('span');
-          avatar.className = 'member-avatar';
-          avatar.textContent = initials;
-          avatar.title = fullName;
-          membersWrap.appendChild(avatar);
-        });
-        td.appendChild(membersWrap);
+        td.className = 'cell-editable';
+        attachMembersEditor(td, card);
         break;
 
       case 'customField':
@@ -765,6 +738,26 @@
     }).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
+    });
+  }
+
+  function apiPost(path, body) {
+    return fetch(TRELLO_API + path + '?key=' + GTD_CONFIG.appKey + '&token=' + state.apiToken, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  function apiDelete(path) {
+    return fetch(TRELLO_API + path + '?key=' + GTD_CONFIG.appKey + '&token=' + state.apiToken, {
+      method: 'DELETE'
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.ok;
     });
   }
 
@@ -1080,6 +1073,400 @@
       .catch(function (err) {
         console.error('[GTD Table] Archive failed', err);
       });
+  }
+
+  // ─── List Editor ──────────────────────────────────────────────────────────
+
+  function attachListEditor(td, card) {
+    var currentListId = card.idList;
+
+    function showDisplay() {
+      td.innerHTML = '';
+      var span = document.createElement('span');
+      span.className = 'cell-display';
+      span.textContent = state.lists[currentListId] || '';
+      td.appendChild(span);
+    }
+
+    function showEditor() {
+      td.innerHTML = '';
+      var select = document.createElement('select');
+      select.className = 'cell-select';
+
+      Object.keys(state.listPos)
+        .sort(function (a, b) { return state.listPos[a] - state.listPos[b]; })
+        .forEach(function (listId) {
+          var opt = document.createElement('option');
+          opt.value = listId;
+          opt.textContent = state.lists[listId] || listId;
+          if (listId === currentListId) opt.selected = true;
+          select.appendChild(opt);
+        });
+
+      td.appendChild(select);
+      select.focus();
+
+      var committed = false;
+      function commit() {
+        if (committed) return;
+        committed = true;
+        var nextListId = select.value;
+        if (nextListId !== currentListId) {
+          currentListId = nextListId;
+          card.idList = nextListId;
+          apiPut('/cards/' + card.id, { idList: nextListId })
+            .catch(function (err) { console.error('[GTD Table] List change failed', err); });
+        }
+        showDisplay();
+      }
+
+      select.addEventListener('change', commit);
+      select.addEventListener('blur', commit);
+      select.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { committed = true; select.blur(); showDisplay(); }
+        e.stopPropagation();
+      });
+    }
+
+    td.onclick = function () {
+      if (!td.querySelector('select')) showEditor();
+    };
+
+    showDisplay();
+  }
+
+  // ─── Labels Editor ────────────────────────────────────────────────────────
+
+  function attachLabelsEditor(td, card) {
+    function showDisplay() {
+      td.innerHTML = '';
+      var wrap = document.createElement('div');
+      wrap.className = 'cell-labels';
+      if ((card.labels || []).length > 0) {
+        card.labels.forEach(function (lbl) { wrap.appendChild(makeLabelChip(lbl)); });
+      } else {
+        var empty = document.createElement('span');
+        empty.className = 'cell-display empty';
+        wrap.appendChild(empty);
+      }
+      td.appendChild(wrap);
+    }
+
+    td.onclick = function (e) {
+      e.stopPropagation();
+      if (_popoverTd === td) { closePopover(); return; }
+      openLabelsPopover(td, card, showDisplay);
+    };
+
+    showDisplay();
+  }
+
+  // ─── Members Editor ───────────────────────────────────────────────────────
+
+  function attachMembersEditor(td, card) {
+    function showDisplay() {
+      td.innerHTML = '';
+      var wrap = document.createElement('div');
+      wrap.className = 'cell-members';
+      if ((card.idMembers || []).length > 0) {
+        card.idMembers.forEach(function (mid) {
+          var fullName = state.members[mid];
+          if (!fullName) return;
+          var initials = fullName.split(' ').map(function (n) { return n[0]; }).join('').toUpperCase().slice(0, 2);
+          var avatar = document.createElement('span');
+          avatar.className = 'member-avatar';
+          avatar.textContent = initials;
+          avatar.title = fullName;
+          wrap.appendChild(avatar);
+        });
+      } else {
+        var empty = document.createElement('span');
+        empty.className = 'cell-display empty';
+        wrap.appendChild(empty);
+      }
+      td.appendChild(wrap);
+    }
+
+    td.onclick = function (e) {
+      e.stopPropagation();
+      if (_popoverTd === td) { closePopover(); return; }
+      openMembersPopover(td, card, showDisplay);
+    };
+
+    showDisplay();
+  }
+
+  // ─── Date Editor ──────────────────────────────────────────────────────────
+
+  function attachDateEditor(td, card) {
+    function showDisplay() {
+      td.innerHTML = '';
+      td.className = 'cell-editable';
+      if (card.due) {
+        var d = new Date(card.due);
+        var span = document.createElement('span');
+        span.className = 'cell-date';
+        span.textContent = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        if (card.dueComplete) {
+          span.classList.add('due-complete');
+        } else if (d < new Date()) {
+          span.classList.add('due-overdue');
+        }
+        td.appendChild(span);
+      } else {
+        var empty = document.createElement('span');
+        empty.className = 'cell-display empty';
+        td.appendChild(empty);
+      }
+    }
+
+    td.onclick = function (e) {
+      e.stopPropagation();
+      if (_popoverTd === td) { closePopover(); return; }
+      openDatePopover(td, card, showDisplay);
+    };
+
+    showDisplay();
+  }
+
+  // ─── Popover Management ───────────────────────────────────────────────────
+
+  function openPopover(td, buildFn) {
+    closePopover();
+    var popover = document.getElementById('cell-popover');
+    if (!popover) return;
+
+    _popoverTd = td;
+    popover.innerHTML = '';
+    popover.style.padding = '';
+    popover.style.minWidth = '';
+    buildFn(popover);
+
+    var rect = td.getBoundingClientRect();
+    var left = rect.left;
+    var top  = rect.bottom + 4;
+
+    // Keep within right edge
+    if (left + 280 > window.innerWidth - 8) {
+      left = window.innerWidth - 288;
+    }
+    // Keep within bottom edge
+    if (top + 340 > window.innerHeight - 8) {
+      top = rect.top - 4;
+      popover.style.transform = 'translateY(-100%)';
+    } else {
+      popover.style.transform = '';
+    }
+
+    popover.style.left = left + 'px';
+    popover.style.top  = top  + 'px';
+    popover.classList.remove('hidden');
+  }
+
+  function closePopover() {
+    var popover = document.getElementById('cell-popover');
+    if (!popover || popover.classList.contains('hidden')) return;
+    popover.classList.add('hidden');
+    popover.innerHTML = '';
+    popover.style.transform = '';
+    _popoverTd = null;
+  }
+
+  function setupPopoverDismiss() {
+    if (document._gtdPopoverDismiss) return;
+    document._gtdPopoverDismiss = true;
+
+    document.addEventListener('click', function (e) {
+      var popover = document.getElementById('cell-popover');
+      if (popover && !popover.classList.contains('hidden') && !popover.contains(e.target)) {
+        closePopover();
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closePopover();
+    });
+  }
+
+  // ─── Labels Popover ───────────────────────────────────────────────────────
+
+  function openLabelsPopover(td, card, onUpdate) {
+    openPopover(td, function (popover) {
+      var header = document.createElement('div');
+      header.className = 'popover-header';
+      header.textContent = 'Labels';
+      popover.appendChild(header);
+
+      if (state.boardLabels.length === 0) {
+        var empty = document.createElement('div');
+        empty.style.padding = '6px 14px';
+        empty.style.color = 'var(--text-muted)';
+        empty.textContent = 'No labels on this board.';
+        popover.appendChild(empty);
+        return;
+      }
+
+      state.boardLabels.forEach(function (lbl) {
+        var isChecked = (card.labels || []).some(function (l) { return l.id === lbl.id; });
+
+        var item = document.createElement('label');
+        item.className = 'col-toggle-item';
+
+        var cb = document.createElement('input');
+        cb.type    = 'checkbox';
+        cb.checked = isChecked;
+        cb.addEventListener('change', function () {
+          if (cb.checked) {
+            apiPost('/cards/' + card.id + '/idLabels', { value: lbl.id })
+              .then(function () {
+                if (!card.labels) card.labels = [];
+                if (!card.labels.some(function (l) { return l.id === lbl.id; })) {
+                  card.labels.push({ id: lbl.id, name: lbl.name, color: lbl.color });
+                }
+                onUpdate();
+              })
+              .catch(function (err) { console.error('[GTD] Add label failed', err); cb.checked = false; });
+          } else {
+            apiDelete('/cards/' + card.id + '/idLabels/' + lbl.id)
+              .then(function () {
+                card.labels = (card.labels || []).filter(function (l) { return l.id !== lbl.id; });
+                onUpdate();
+              })
+              .catch(function (err) { console.error('[GTD] Remove label failed', err); cb.checked = true; });
+          }
+        });
+
+        var chip = makeLabelChip(lbl);
+        chip.style.flexShrink = '0';
+
+        item.appendChild(cb);
+        item.appendChild(chip);
+        if (lbl.name) {
+          var nameSpan = document.createElement('span');
+          nameSpan.textContent = lbl.name;
+          nameSpan.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+          item.appendChild(nameSpan);
+        }
+        popover.appendChild(item);
+      });
+    });
+  }
+
+  // ─── Members Popover ──────────────────────────────────────────────────────
+
+  function openMembersPopover(td, card, onUpdate) {
+    openPopover(td, function (popover) {
+      var header = document.createElement('div');
+      header.className = 'popover-header';
+      header.textContent = 'Members';
+      popover.appendChild(header);
+
+      Object.keys(state.members).forEach(function (memberId) {
+        var fullName = state.members[memberId];
+        var isChecked = (card.idMembers || []).indexOf(memberId) !== -1;
+
+        var item = document.createElement('label');
+        item.className = 'col-toggle-item';
+
+        var cb = document.createElement('input');
+        cb.type    = 'checkbox';
+        cb.checked = isChecked;
+        cb.addEventListener('change', function () {
+          if (cb.checked) {
+            apiPost('/cards/' + card.id + '/idMembers', { value: memberId })
+              .then(function () {
+                if (!card.idMembers) card.idMembers = [];
+                if (card.idMembers.indexOf(memberId) === -1) card.idMembers.push(memberId);
+                onUpdate();
+              })
+              .catch(function (err) { console.error('[GTD] Add member failed', err); cb.checked = false; });
+          } else {
+            apiDelete('/cards/' + card.id + '/idMembers/' + memberId)
+              .then(function () {
+                card.idMembers = (card.idMembers || []).filter(function (id) { return id !== memberId; });
+                onUpdate();
+              })
+              .catch(function (err) { console.error('[GTD] Remove member failed', err); cb.checked = true; });
+          }
+        });
+
+        var initials = fullName.split(' ').map(function (n) { return n[0]; }).join('').toUpperCase().slice(0, 2);
+        var avatar = document.createElement('span');
+        avatar.className = 'member-avatar';
+        avatar.textContent = initials;
+        avatar.title = fullName;
+        avatar.style.flexShrink = '0';
+
+        item.appendChild(cb);
+        item.appendChild(avatar);
+        item.appendChild(document.createTextNode(' ' + fullName));
+        popover.appendChild(item);
+      });
+    });
+  }
+
+  // ─── Date Popover ─────────────────────────────────────────────────────────
+
+  function openDatePopover(td, card, onUpdate) {
+    openPopover(td, function (popover) {
+      popover.style.padding = '12px 14px';
+      popover.style.minWidth = '220px';
+
+      var header = document.createElement('div');
+      header.className = 'popover-header';
+      header.style.cssText = 'margin:-12px -14px 10px;padding:6px 14px 4px;';
+      header.textContent = 'Due Date';
+      popover.appendChild(header);
+
+      var dateInput = document.createElement('input');
+      dateInput.type = 'date';
+      dateInput.className = 'cell-input';
+      dateInput.style.cssText = 'width:100%;margin-bottom:10px;';
+      if (card.due) {
+        dateInput.value = card.due.substring(0, 10);
+      }
+      popover.appendChild(dateInput);
+
+      var btnRow = document.createElement('div');
+      btnRow.style.cssText = 'display:flex;gap:8px;';
+
+      var saveBtn = document.createElement('button');
+      saveBtn.className = 'toolbar-btn';
+      saveBtn.textContent = 'Save';
+      saveBtn.style.flex = '1';
+      saveBtn.addEventListener('click', function () {
+        var val = dateInput.value;
+        if (!val) return;
+        var d = new Date(val + 'T12:00:00');
+        apiPut('/cards/' + card.id, { due: d.toISOString() })
+          .then(function () {
+            card.due = d.toISOString();
+            closePopover();
+            onUpdate();
+          })
+          .catch(function (err) { console.error('[GTD] Due date save failed', err); });
+      });
+
+      var removeBtn = document.createElement('button');
+      removeBtn.className = 'toolbar-btn secondary';
+      removeBtn.textContent = 'Remove';
+      removeBtn.addEventListener('click', function () {
+        apiPut('/cards/' + card.id, { due: null })
+          .then(function () {
+            card.due = null;
+            card.dueComplete = false;
+            closePopover();
+            onUpdate();
+          })
+          .catch(function (err) { console.error('[GTD] Due date remove failed', err); });
+      });
+
+      btnRow.appendChild(saveBtn);
+      btnRow.appendChild(removeBtn);
+      popover.appendChild(btnRow);
+
+      dateInput.focus();
+    });
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
