@@ -412,10 +412,13 @@
         break;
 
       case 'labels':
-        td.className = 'cell-labels';
+        td.className = '';
+        var labelsWrap = document.createElement('div');
+        labelsWrap.className = 'cell-labels';
         (card.labels || []).forEach(function (lbl) {
-          td.appendChild(makeLabelChip(lbl));
+          labelsWrap.appendChild(makeLabelChip(lbl));
         });
+        td.appendChild(labelsWrap);
         break;
 
       case 'date':
@@ -436,7 +439,9 @@
         break;
 
       case 'members':
-        td.className = 'cell-members';
+        td.className = '';
+        var membersWrap = document.createElement('div');
+        membersWrap.className = 'cell-members';
         (card.idMembers || []).forEach(function (mid) {
           var fullName = state.members[mid];
           if (!fullName) return;
@@ -449,8 +454,9 @@
           avatar.className = 'member-avatar';
           avatar.textContent = initials;
           avatar.title = fullName;
-          td.appendChild(avatar);
+          membersWrap.appendChild(avatar);
         });
+        td.appendChild(membersWrap);
         break;
 
       case 'customField':
