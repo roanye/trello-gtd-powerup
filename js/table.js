@@ -351,7 +351,8 @@
               state.sort.dir = 'asc';
             }
             savePreferences();
-            renderTable();
+            updateSortIcons();
+            renderTableBody();
           };
         }(col.id)));
       }
@@ -359,6 +360,23 @@
       th.appendChild(inner);
       row.appendChild(th);
     });
+  }
+
+  function updateSortIcons() {
+    var row = document.getElementById('header-row');
+    if (!row) return;
+    var icons = row.querySelectorAll('.sort-icon');
+    for (var i = 0; i < icons.length; i++) {
+      var icon = icons[i];
+      var colId = icon.closest('th').dataset.colId;
+      if (colId === state.sort.column) {
+        icon.classList.add('active');
+        icon.textContent = state.sort.dir === 'asc' ? ' \u25b2' : ' \u25bc';
+      } else {
+        icon.classList.remove('active');
+        icon.textContent = ' \u21c5';
+      }
+    }
   }
 
   // ─── Body ──────────────────────────────────────────────────────────────────
@@ -382,6 +400,7 @@
       return;
     }
 
+    var frag = document.createDocumentFragment();
     cards.forEach(function (card) {
       var tr = document.createElement('tr');
       tr.dataset.cardId = card.id;
@@ -392,8 +411,9 @@
         tr.appendChild(td);
       });
 
-      tbody.appendChild(tr);
+      frag.appendChild(tr);
     });
+    tbody.appendChild(frag);
   }
 
   // ─── Cell Rendering ────────────────────────────────────────────────────────
@@ -902,9 +922,14 @@
   function attachToolbarListeners() {
     var searchInput = document.getElementById('search-input');
     if (searchInput) {
+      var searchTimer = null;
       searchInput.addEventListener('input', function () {
-        state.filters.search = this.value;
-        renderTableBody();
+        var val = this.value;
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function () {
+          state.filters.search = val;
+          renderTableBody();
+        }, 220);
       });
     }
 
