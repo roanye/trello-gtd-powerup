@@ -270,9 +270,8 @@ tr:hover td { background: var(--bg-hover); }
   width: 100%;
   overflow: hidden;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
-  padding-top: 2px;
 }
 
 /* Completion circle — hidden until row hover */
@@ -327,10 +326,9 @@ tr:hover .completion-btn {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  align-items: flex-start;
-  align-content: flex-start;
+  align-items: center;
+  align-content: center;
   overflow: hidden;
-  padding-top: 2px;
 }
 
 .label-chip {
@@ -453,10 +451,9 @@ tr:hover .completion-btn {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
-  align-items: flex-start;
-  align-content: flex-start;
+  align-items: center;
+  align-content: center;
   overflow: hidden;
-  padding-top: 2px;
 }
 
 .member-avatar {
