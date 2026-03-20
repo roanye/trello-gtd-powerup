@@ -530,8 +530,12 @@
 
   function attachTextCFEditor(td, card, cf, initialValue) {
     var currentValue = initialValue;
+    var cooldown = false;
 
     function showDisplay() {
+      // Block re-opening for 300ms so a blur+click sequence doesn't immediately reopen
+      cooldown = true;
+      setTimeout(function () { cooldown = false; }, 300);
       td.innerHTML = '';
       var span = document.createElement('span');
       span.className = 'cell-display';
@@ -568,6 +572,7 @@
     }
 
     td.onclick = function () {
+      if (cooldown) return;
       if (!td.querySelector('input')) showEditor();
     };
 
@@ -578,8 +583,11 @@
 
   function attachNumberCFEditor(td, card, cf, initialValue) {
     var currentValue = String(initialValue);
+    var cooldown = false;
 
     function showDisplay() {
+      cooldown = true;
+      setTimeout(function () { cooldown = false; }, 300);
       td.innerHTML = '';
       var span = document.createElement('span');
       span.className = 'cell-display';
@@ -616,6 +624,7 @@
     }
 
     td.onclick = function () {
+      if (cooldown) return;
       if (!td.querySelector('input')) showEditor();
     };
 
