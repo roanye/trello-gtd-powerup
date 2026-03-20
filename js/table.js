@@ -442,11 +442,7 @@
         nameLink.textContent = card.name;
         nameLink.addEventListener('click', function (e) {
           e.preventDefault();
-          window.open(
-            'https://trello.com/c/' + card.shortLink,
-            'trello_card',
-            'width=900,height=700,left=150,top=80,resizable=yes,scrollbars=yes'
-          );
+          t.showCard(card.id);
         });
         nameWrapper.appendChild(completeBtn);
         nameWrapper.appendChild(nameLink);
