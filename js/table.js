@@ -339,7 +339,13 @@
         th.addEventListener('click', (function (colId) {
           return function () {
             if (state.sort.column === colId) {
-              state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+              if (state.sort.dir === 'asc') {
+                state.sort.dir = 'desc';
+              } else {
+                // Third click: clear sort, return to board order
+                state.sort.column = null;
+                state.sort.dir = 'asc';
+              }
             } else {
               state.sort.column = colId;
               state.sort.dir = 'asc';
