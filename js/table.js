@@ -180,7 +180,7 @@
         var url = TRELLO_API + '/boards/' + boardId
           + '?cards=open'
           + '&card_customFieldItems=true'
-          + '&card_fields=id,name,idList,labels,due,dueComplete,idMembers,pos,closed'
+          + '&card_fields=id,name,idList,labels,due,dueComplete,idMembers,pos,closed,shortLink'
           + '&customFields=true'
           + '&lists=open'
           + '&list_fields=id,name,pos'
@@ -416,7 +416,7 @@
         nameLink.textContent = card.name;
         nameLink.addEventListener('click', function (e) {
           e.preventDefault();
-          t.showCard(card.id);
+          window.open('https://trello.com/c/' + card.shortLink, '_blank');
         });
         nameWrapper.appendChild(completeBtn);
         nameWrapper.appendChild(nameLink);
@@ -621,50 +621,47 @@
       td.appendChild(empty);
     }
 
-    function showEditor() {
-      td.innerHTML = '';
-      var select = document.createElement('select');
-      select.className = 'cell-select';
+    td.onclick = function (e) {
+      e.stopPropagation();
+      if (_popoverTd === td) { closePopover(); return; }
+      openPopover(td, function (popover) {
+        // None option
+        var noneItem = document.createElement('div');
+        noneItem.className = 'popover-item' + (!currentIdValue ? ' selected' : '');
+        noneItem.textContent = '— None —';
+        noneItem.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (currentIdValue !== '') {
+            currentIdValue = '';
+            saveCustomFieldValue(card, cf, { idValue: '' });
+          }
+          showDisplay();
+          closePopover();
+        });
+        popover.appendChild(noneItem);
 
-      var blankOpt = document.createElement('option');
-      blankOpt.value = '';
-      blankOpt.textContent = '— None —';
-      select.appendChild(blankOpt);
-
-      cf.options.forEach(function (opt) {
-        var option = document.createElement('option');
-        option.value = opt.id;
-        option.textContent = opt.value.text;
-        if (opt.id === currentIdValue) option.selected = true;
-        select.appendChild(option);
+        cf.options.forEach(function (opt) {
+          var item = document.createElement('div');
+          item.className = 'popover-item' + (opt.id === currentIdValue ? ' selected' : '');
+          var badge = document.createElement('span');
+          badge.className = 'status-badge';
+          badge.textContent = opt.value.text;
+          var hex = cfOptionColorToHex(opt.color);
+          badge.style.backgroundColor = hex;
+          badge.style.color = isLightHex(hex) ? '#1d2125' : '#ffffff';
+          item.appendChild(badge);
+          item.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (opt.id !== currentIdValue) {
+              currentIdValue = opt.id;
+              saveCustomFieldValue(card, cf, { idValue: opt.id });
+            }
+            showDisplay();
+            closePopover();
+          });
+          popover.appendChild(item);
+        });
       });
-
-      td.appendChild(select);
-      select.focus();
-
-      var committed = false;
-      function commit() {
-        if (committed) return;
-        committed = true;
-        var nextIdValue = select.value;
-        if (nextIdValue !== currentIdValue) {
-          currentIdValue = nextIdValue;
-          var payload = nextIdValue ? { idValue: nextIdValue } : { idValue: '' };
-          saveCustomFieldValue(card, cf, payload);
-        }
-        showDisplay();
-      }
-
-      select.addEventListener('change', commit);
-      select.addEventListener('blur', commit);
-      select.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') { committed = true; select.value = currentIdValue; select.blur(); showDisplay(); }
-        e.stopPropagation();
-      });
-    }
-
-    td.onclick = function () {
-      if (!td.querySelector('select')) showEditor();
     };
 
     showDisplay();
@@ -1088,48 +1085,35 @@
       td.appendChild(span);
     }
 
-    function showEditor() {
-      td.innerHTML = '';
-      var select = document.createElement('select');
-      select.className = 'cell-select';
+    td.onclick = function (e) {
+      e.stopPropagation();
+      if (_popoverTd === td) { closePopover(); return; }
+      openPopover(td, function (popover) {
+        var header = document.createElement('div');
+        header.className = 'popover-header';
+        header.textContent = 'Move to list';
+        popover.appendChild(header);
 
-      Object.keys(state.listPos)
-        .sort(function (a, b) { return state.listPos[a] - state.listPos[b]; })
-        .forEach(function (listId) {
-          var opt = document.createElement('option');
-          opt.value = listId;
-          opt.textContent = state.lists[listId] || listId;
-          if (listId === currentListId) opt.selected = true;
-          select.appendChild(opt);
-        });
-
-      td.appendChild(select);
-      select.focus();
-
-      var committed = false;
-      function commit() {
-        if (committed) return;
-        committed = true;
-        var nextListId = select.value;
-        if (nextListId !== currentListId) {
-          currentListId = nextListId;
-          card.idList = nextListId;
-          apiPut('/cards/' + card.id, { idList: nextListId })
-            .catch(function (err) { console.error('[GTD Table] List change failed', err); });
-        }
-        showDisplay();
-      }
-
-      select.addEventListener('change', commit);
-      select.addEventListener('blur', commit);
-      select.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') { committed = true; select.blur(); showDisplay(); }
-        e.stopPropagation();
+        Object.keys(state.listPos)
+          .sort(function (a, b) { return state.listPos[a] - state.listPos[b]; })
+          .forEach(function (listId) {
+            var item = document.createElement('div');
+            item.className = 'popover-item' + (listId === currentListId ? ' selected' : '');
+            item.textContent = state.lists[listId] || listId;
+            item.addEventListener('click', function (e) {
+              e.stopPropagation();
+              if (listId !== currentListId) {
+                currentListId = listId;
+                card.idList = listId;
+                apiPut('/cards/' + card.id, { idList: listId })
+                  .catch(function (err) { console.error('[GTD Table] List change failed', err); });
+              }
+              showDisplay();
+              closePopover();
+            });
+            popover.appendChild(item);
+          });
       });
-    }
-
-    td.onclick = function () {
-      if (!td.querySelector('select')) showEditor();
     };
 
     showDisplay();
@@ -1425,16 +1409,8 @@
       if (card.due) {
         dateInput.value = card.due.substring(0, 10);
       }
-      popover.appendChild(dateInput);
-
-      var btnRow = document.createElement('div');
-      btnRow.style.cssText = 'display:flex;gap:8px;';
-
-      var saveBtn = document.createElement('button');
-      saveBtn.className = 'toolbar-btn';
-      saveBtn.textContent = 'Save';
-      saveBtn.style.flex = '1';
-      saveBtn.addEventListener('click', function () {
+      // Auto-save as soon as user picks a date
+      dateInput.addEventListener('change', function () {
         var val = dateInput.value;
         if (!val) return;
         var d = new Date(val + 'T12:00:00');
@@ -1446,10 +1422,12 @@
           })
           .catch(function (err) { console.error('[GTD] Due date save failed', err); });
       });
+      popover.appendChild(dateInput);
 
       var removeBtn = document.createElement('button');
       removeBtn.className = 'toolbar-btn secondary';
-      removeBtn.textContent = 'Remove';
+      removeBtn.style.cssText = 'width:100%;margin-top:2px;';
+      removeBtn.textContent = 'Remove due date';
       removeBtn.addEventListener('click', function () {
         apiPut('/cards/' + card.id, { due: null })
           .then(function () {
@@ -1460,10 +1438,7 @@
           })
           .catch(function (err) { console.error('[GTD] Due date remove failed', err); });
       });
-
-      btnRow.appendChild(saveBtn);
-      btnRow.appendChild(removeBtn);
-      popover.appendChild(btnRow);
+      popover.appendChild(removeBtn);
 
       dateInput.focus();
     });
