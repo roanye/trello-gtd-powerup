@@ -526,8 +526,6 @@
 
   function attachTextCFEditor(td, card, cf, initialValue) {
     var currentValue = initialValue;
-    var isEditing   = false;
-    var cooldownTimer = null;
 
     function showDisplay() {
       td.innerHTML = '';
@@ -538,49 +536,53 @@
       td.appendChild(span);
     }
 
-    function closeEditor() {
-      // Keep isEditing=true until timeout — blocks the blur+click re-entry race
-      clearTimeout(cooldownTimer);
-      cooldownTimer = setTimeout(function () { isEditing = false; }, 350);
-      showDisplay();
-    }
+    td.onclick = function (e) {
+      e.stopPropagation();
+      if (_popoverTd === td) { closePopover(); return; }
+      openPopover(td, function (popover) {
+        popover.style.padding = '10px';
+        popover.style.minWidth = '220px';
 
-    function showEditor() {
-      if (isEditing) return;        // guard against re-entry
-      isEditing = true;
-      clearTimeout(cooldownTimer);
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'cell-input';
+        input.value = currentValue;
+        popover.appendChild(input);
 
-      td.innerHTML = '';
-      var input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'cell-input';
-      input.value = currentValue;
-      td.appendChild(input);
-      input.focus();
-      input.select();
+        var btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display:flex;gap:6px;margin-top:8px;';
+        var saveBtn = document.createElement('button');
+        saveBtn.textContent = 'Save';
+        saveBtn.className = 'toolbar-btn';
+        saveBtn.style.flex = '1';
+        var cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.className = 'toolbar-btn secondary';
+        cancelBtn.style.flex = '1';
+        btnRow.appendChild(saveBtn);
+        btnRow.appendChild(cancelBtn);
+        popover.appendChild(btnRow);
 
-      var committed = false;
-      function commit() {
-        if (committed) return;
-        committed = true;
-        var next = input.value.trim();
-        if (next !== currentValue) {
-          currentValue = next;
-          saveCustomFieldValue(card, cf, { value: { text: next } });
+        function save() {
+          var next = input.value.trim();
+          if (next !== currentValue) {
+            currentValue = next;
+            saveCustomFieldValue(card, cf, { value: { text: next } });
+          }
+          showDisplay();
+          closePopover();
         }
-        closeEditor();
-      }
 
-      input.addEventListener('blur', commit);
-      input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter')  { input.blur(); }
-        if (e.key === 'Escape') { committed = true; input.value = currentValue; input.blur(); closeEditor(); }
-        e.stopPropagation();
+        saveBtn.addEventListener('click', function (e) { e.stopPropagation(); save(); });
+        cancelBtn.addEventListener('click', function (e) { e.stopPropagation(); closePopover(); });
+        input.addEventListener('click', function (e) { e.stopPropagation(); });
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter')  { e.preventDefault(); save(); }
+          if (e.key === 'Escape') { e.preventDefault(); closePopover(); }
+          e.stopPropagation();
+        });
+        setTimeout(function () { input.focus(); input.select(); }, 0);
       });
-    }
-
-    td.onclick = function () {
-      if (!isEditing) showEditor();
     };
 
     showDisplay();
@@ -589,9 +591,7 @@
   // ─── Number Custom Field Editor ────────────────────────────────────────────
 
   function attachNumberCFEditor(td, card, cf, initialValue) {
-    var currentValue  = String(initialValue);
-    var isEditing     = false;
-    var cooldownTimer = null;
+    var currentValue = String(initialValue);
 
     function showDisplay() {
       td.innerHTML = '';
@@ -602,49 +602,53 @@
       td.appendChild(span);
     }
 
-    function closeEditor() {
-      isEditing = false;
-      clearTimeout(cooldownTimer);
-      cooldownTimer = setTimeout(function () { isEditing = false; }, 350);
-      showDisplay();
-    }
+    td.onclick = function (e) {
+      e.stopPropagation();
+      if (_popoverTd === td) { closePopover(); return; }
+      openPopover(td, function (popover) {
+        popover.style.padding = '10px';
+        popover.style.minWidth = '180px';
 
-    function showEditor() {
-      if (isEditing) return;
-      isEditing = true;
-      clearTimeout(cooldownTimer);
+        var input = document.createElement('input');
+        input.type = 'number';
+        input.className = 'cell-input';
+        input.value = currentValue;
+        popover.appendChild(input);
 
-      td.innerHTML = '';
-      var input = document.createElement('input');
-      input.type = 'number';
-      input.className = 'cell-input';
-      input.value = currentValue;
-      td.appendChild(input);
-      input.focus();
-      input.select();
+        var btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display:flex;gap:6px;margin-top:8px;';
+        var saveBtn = document.createElement('button');
+        saveBtn.textContent = 'Save';
+        saveBtn.className = 'toolbar-btn';
+        saveBtn.style.flex = '1';
+        var cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.className = 'toolbar-btn secondary';
+        cancelBtn.style.flex = '1';
+        btnRow.appendChild(saveBtn);
+        btnRow.appendChild(cancelBtn);
+        popover.appendChild(btnRow);
 
-      var committed = false;
-      function commit() {
-        if (committed) return;
-        committed = true;
-        var next = input.value.trim();
-        if (next !== currentValue) {
-          currentValue = next;
-          saveCustomFieldValue(card, cf, { value: { number: next } });
+        function save() {
+          var next = input.value.trim();
+          if (next !== currentValue) {
+            currentValue = next;
+            saveCustomFieldValue(card, cf, { value: { number: next } });
+          }
+          showDisplay();
+          closePopover();
         }
-        closeEditor();
-      }
 
-      input.addEventListener('blur', commit);
-      input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter')  { input.blur(); }
-        if (e.key === 'Escape') { committed = true; input.value = currentValue; input.blur(); closeEditor(); }
-        e.stopPropagation();
+        saveBtn.addEventListener('click', function (e) { e.stopPropagation(); save(); });
+        cancelBtn.addEventListener('click', function (e) { e.stopPropagation(); closePopover(); });
+        input.addEventListener('click', function (e) { e.stopPropagation(); });
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter')  { e.preventDefault(); save(); }
+          if (e.key === 'Escape') { e.preventDefault(); closePopover(); }
+          e.stopPropagation();
+        });
+        setTimeout(function () { input.focus(); input.select(); }, 0);
       });
-    }
-
-    td.onclick = function () {
-      if (!isEditing) showEditor();
     };
 
     showDisplay();
