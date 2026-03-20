@@ -57,25 +57,19 @@
   t.render(function () {
     showLoading(true);
 
-    return loadPreferences()
-      .then(function () {
-        return t.getRestApi().isAuthorized();
-      })
-      .then(function (isAuthorized) {
-        if (!isAuthorized) {
-          showLoading(false);
-          showAuthOverlay();
-          return;
-        }
-        return t.getRestApi().getToken()
-          .then(function (token) {
-            state.apiToken = token;
-            return loadData();
-          })
-          .then(function () {
+    return Promise.all([loadPreferences(), t.get('member', 'private', 'gtdApiToken')])
+      .then(function (results) {
+        var savedToken = results[1];
+        if (savedToken) {
+          state.apiToken = savedToken;
+          return loadData().then(function () {
             showLoading(false);
             buildUI();
           });
+        } else {
+          showLoading(false);
+          showAuthOverlay();
+        }
       })
       .catch(function (err) {
         showLoading(false);
@@ -84,6 +78,7 @@
   });
 
   // ─── Auth Overlay ──────────────────────────────────────────────────────────
+  // Uses direct Trello OAuth instead of t.getRestApi() to avoid SDK scope issues.
 
   function showAuthOverlay() {
     var overlay = document.getElementById('auth-overlay');
@@ -93,21 +88,59 @@
     if (!authBtn) return;
 
     authBtn.addEventListener('click', function () {
-      t.getRestApi().authorize({ scope: 'read,write', expiration: 'never' })
-        .then(function (token) {
-          state.apiToken = token;
-          hideAuthOverlay();
-          showLoading(true);
-          return loadData();
-        })
-        .then(function () {
+      var callbackUrl = 'https://roanye.github.io/trello-gtd-powerup/auth-callback.html';
+      var authUrl = 'https://trello.com/1/authorize'
+        + '?key='          + GTD_CONFIG.appKey
+        + '&name='         + encodeURIComponent('GTD Table View')
+        + '&scope=read%2Cwrite'
+        + '&expiration=never'
+        + '&response_type=token'
+        + '&return_url='   + encodeURIComponent(callbackUrl);
+
+      try { localStorage.removeItem('gtd_trello_token_pending'); } catch(e) {}
+
+      var popup = window.open(authUrl, 'trello_auth', 'width=520,height=700,left=200,top=80');
+
+      // Listen for postMessage from auth-callback.html
+      function onMessage(e) {
+        if (e.data && e.data.gtdToken) {
+          window.removeEventListener('message', onMessage);
+          clearInterval(pollInterval);
+          handleToken(e.data.gtdToken);
+        }
+      }
+      window.addEventListener('message', onMessage);
+
+      // Fallback: poll localStorage (for browsers that block postMessage cross-frame)
+      var pollInterval = setInterval(function () {
+        var token;
+        try { token = localStorage.getItem('gtd_trello_token_pending'); } catch(e) {}
+        if (token) {
+          clearInterval(pollInterval);
+          window.removeEventListener('message', onMessage);
+          try { localStorage.removeItem('gtd_trello_token_pending'); } catch(e) {}
+          handleToken(token);
+          return;
+        }
+        if (popup && popup.closed) {
+          clearInterval(pollInterval);
+          window.removeEventListener('message', onMessage);
+        }
+      }, 500);
+
+      function handleToken(token) {
+        state.apiToken = token;
+        t.set('member', 'private', 'gtdApiToken', token).catch(function () {});
+        hideAuthOverlay();
+        showLoading(true);
+        loadData().then(function () {
           showLoading(false);
           buildUI();
-        })
-        .catch(function (err) {
+        }).catch(function (err) {
           showLoading(false);
-          showError('Authorization failed: ' + (err && err.message ? err.message : String(err)));
+          showError('Load failed: ' + (err && err.message ? err.message : String(err)));
         });
+      }
     });
   }
 

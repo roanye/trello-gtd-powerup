@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Authorizing GTD Table View...</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1d2125;
+      color: #b6c2cf;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .box {
+      text-align: center;
+    }
+    h2 { font-size: 18px; margin-bottom: 8px; }
+    p  { font-size: 14px; color: #7d8b99; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2 id="heading">Authorizing...</h2>
+    <p id="msg">Please wait.</p>
+  </div>
+  <script>
+    var hash = window.location.hash || window.location.search;
+    var match = hash.match(/[#?&]token=([^&]+)/);
+
+    if (match) {
+      var token = match[1];
+      // Store token so the table-view iframe can pick it up
+      try { localStorage.setItem('gtd_trello_token_pending', token); } catch(e) {}
+      // Also try postMessage to opener
+      try { if (window.opener) window.opener.postMessage({ gtdToken: token }, '*'); } catch(e) {}
+      document.getElementById('heading').textContent = 'Authorized!';
+      document.getElementById('msg').textContent = 'You can close this window.';
+      setTimeout(function() { window.close(); }, 1500);
+    } else {
+      document.getElementById('heading').textContent = 'Authorization Failed';
+      document.getElementById('msg').textContent = 'No token received. Please close this window and try again.';
+    }
+  </script>
+</body>
+</html>
