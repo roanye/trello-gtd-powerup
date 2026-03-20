@@ -530,12 +530,10 @@
 
   function attachTextCFEditor(td, card, cf, initialValue) {
     var currentValue = initialValue;
-    var cooldown = false;
+    var isEditing   = false;
+    var cooldownTimer = null;
 
     function showDisplay() {
-      // Block re-opening for 300ms so a blur+click sequence doesn't immediately reopen
-      cooldown = true;
-      setTimeout(function () { cooldown = false; }, 300);
       td.innerHTML = '';
       var span = document.createElement('span');
       span.className = 'cell-display';
@@ -544,7 +542,19 @@
       td.appendChild(span);
     }
 
+    function closeEditor() {
+      isEditing = false;
+      // Brief cooldown so the blur+click race can't immediately reopen
+      clearTimeout(cooldownTimer);
+      cooldownTimer = setTimeout(function () { isEditing = false; }, 350);
+      showDisplay();
+    }
+
     function showEditor() {
+      if (isEditing) return;        // guard against re-entry
+      isEditing = true;
+      clearTimeout(cooldownTimer);
+
       td.innerHTML = '';
       var input = document.createElement('input');
       input.type = 'text';
@@ -554,26 +564,28 @@
       input.focus();
       input.select();
 
+      var committed = false;
       function commit() {
+        if (committed) return;
+        committed = true;
         var next = input.value.trim();
         if (next !== currentValue) {
           currentValue = next;
           saveCustomFieldValue(card, cf, { value: { text: next } });
         }
-        showDisplay();
+        closeEditor();
       }
 
       input.addEventListener('blur', commit);
       input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter')  { input.blur(); }
-        if (e.key === 'Escape') { input.value = currentValue; input.blur(); }
+        if (e.key === 'Escape') { committed = true; input.value = currentValue; input.blur(); closeEditor(); }
         e.stopPropagation();
       });
     }
 
     td.onclick = function () {
-      if (cooldown) return;
-      if (!td.querySelector('input')) showEditor();
+      if (!isEditing) showEditor();
     };
 
     showDisplay();
@@ -582,12 +594,11 @@
   // ─── Number Custom Field Editor ────────────────────────────────────────────
 
   function attachNumberCFEditor(td, card, cf, initialValue) {
-    var currentValue = String(initialValue);
-    var cooldown = false;
+    var currentValue  = String(initialValue);
+    var isEditing     = false;
+    var cooldownTimer = null;
 
     function showDisplay() {
-      cooldown = true;
-      setTimeout(function () { cooldown = false; }, 300);
       td.innerHTML = '';
       var span = document.createElement('span');
       span.className = 'cell-display';
@@ -596,7 +607,18 @@
       td.appendChild(span);
     }
 
+    function closeEditor() {
+      isEditing = false;
+      clearTimeout(cooldownTimer);
+      cooldownTimer = setTimeout(function () { isEditing = false; }, 350);
+      showDisplay();
+    }
+
     function showEditor() {
+      if (isEditing) return;
+      isEditing = true;
+      clearTimeout(cooldownTimer);
+
       td.innerHTML = '';
       var input = document.createElement('input');
       input.type = 'number';
@@ -606,26 +628,28 @@
       input.focus();
       input.select();
 
+      var committed = false;
       function commit() {
+        if (committed) return;
+        committed = true;
         var next = input.value.trim();
         if (next !== currentValue) {
           currentValue = next;
           saveCustomFieldValue(card, cf, { value: { number: next } });
         }
-        showDisplay();
+        closeEditor();
       }
 
       input.addEventListener('blur', commit);
       input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter')  { input.blur(); }
-        if (e.key === 'Escape') { input.value = currentValue; input.blur(); }
+        if (e.key === 'Escape') { committed = true; input.value = currentValue; input.blur(); closeEditor(); }
         e.stopPropagation();
       });
     }
 
     td.onclick = function () {
-      if (cooldown) return;
-      if (!td.querySelector('input')) showEditor();
+      if (!isEditing) showEditor();
     };
 
     showDisplay();
