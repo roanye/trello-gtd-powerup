@@ -48,7 +48,7 @@
     columns:        [],   // built dynamically after load
     columnPrefs:    {},   // colId → visible boolean (saved to t.set member private)
     sort:           { column: null, dir: 'asc' },
-    filters:        { search: '', lists: [] },  // lists: array of selected list IDs
+    filters:        { search: '', lists: [], labels: [], members: [] },
     apiToken:       null,
     boardLabels:    []   // all labels defined on the board
   };
@@ -298,6 +298,8 @@
   function buildUI() {
     attachToolbarListeners();
     buildListFilterDropdown();
+    buildLabelsFilterDropdown();
+    buildMembersFilterDropdown();
     renderTable();
     buildColumnDropdown();
     setupPopoverDismiss();
@@ -912,6 +914,19 @@
       cards = cards.filter(function (card) { return f.lists.indexOf(card.idList) !== -1; });
     }
 
+    if (f.labels && f.labels.length > 0) {
+      cards = cards.filter(function (card) {
+        var cardLabelIds = (card.labels || []).map(function (l) { return l.id; });
+        return f.labels.some(function (id) { return cardLabelIds.indexOf(id) !== -1; });
+      });
+    }
+
+    if (f.members && f.members.length > 0) {
+      cards = cards.filter(function (card) {
+        return f.members.some(function (id) { return (card.idMembers || []).indexOf(id) !== -1; });
+      });
+    }
+
     if (state.sort.column) {
       var sortColId = state.sort.column;
       var dir = state.sort.dir === 'asc' ? 1 : -1;
@@ -999,15 +1014,16 @@
     var clearBtn = document.getElementById('clear-filters-btn');
     if (clearBtn) {
       clearBtn.addEventListener('click', function () {
-        state.filters = { search: '', lists: [] };
+        state.filters = { search: '', lists: [], labels: [], members: [] };
         var si = document.getElementById('search-input');
         if (si) si.value = '';
         updateListFilterBtn();
-        // Uncheck all list checkboxes
-        var dd = document.getElementById('list-filter-dropdown');
-        if (dd) {
-          dd.querySelectorAll('input[type="checkbox"]').forEach(function (cb) { cb.checked = false; });
-        }
+        updateLabelsFilterBtn();
+        updateMembersFilterBtn();
+        ['list-filter-dropdown', 'labels-filter-dropdown', 'members-filter-dropdown'].forEach(function (id) {
+          var dd = document.getElementById(id);
+          if (dd) dd.querySelectorAll('input[type="checkbox"]').forEach(function (cb) { cb.checked = false; });
+        });
         renderTableBody();
       });
     }
@@ -1020,6 +1036,8 @@
           .then(function () {
             showLoading(false);
             buildListFilterDropdown();
+            buildLabelsFilterDropdown();
+            buildMembersFilterDropdown();
             renderTable();
             buildColumnDropdown();
           })
@@ -1146,6 +1164,147 @@
       btn.textContent = (state.lists[sel[0]] || 'List') + ' ▾';
     } else {
       btn.textContent = sel.length + ' Lists ▾';
+    }
+  }
+
+  // ─── Labels Filter Multi-Select Dropdown ─────────────────────────────────
+
+  function buildLabelsFilterDropdown() {
+    var btn      = document.getElementById('labels-filter-btn');
+    var dropdown = document.getElementById('labels-filter-dropdown');
+    if (!btn || !dropdown) return;
+
+    dropdown.innerHTML = '';
+
+    state.boardLabels.forEach(function (lbl) {
+      var labelId = lbl.id;
+      var row = document.createElement('label');
+      row.className = 'col-toggle-item';
+
+      var cb = document.createElement('input');
+      cb.type    = 'checkbox';
+      cb.value   = labelId;
+      cb.checked = state.filters.labels.indexOf(labelId) !== -1;
+
+      cb.addEventListener('change', function () {
+        if (cb.checked) {
+          if (state.filters.labels.indexOf(labelId) === -1) {
+            state.filters.labels.push(labelId);
+          }
+        } else {
+          state.filters.labels = state.filters.labels.filter(function (id) { return id !== labelId; });
+        }
+        updateLabelsFilterBtn();
+        renderTableBody();
+      });
+
+      var chip = makeLabelChip(lbl);
+
+      row.appendChild(cb);
+      row.appendChild(chip);
+      dropdown.appendChild(row);
+    });
+
+    if (!btn.dataset.labelsFilterListenerAttached) {
+      btn.dataset.labelsFilterListenerAttached = 'true';
+
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dropdown.classList.toggle('hidden');
+      });
+
+      document.addEventListener('click', function () {
+        dropdown.classList.add('hidden');
+      });
+
+      dropdown.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+  }
+
+  function updateLabelsFilterBtn() {
+    var btn = document.getElementById('labels-filter-btn');
+    if (!btn) return;
+    var sel = state.filters.labels;
+    if (sel.length === 0) {
+      btn.textContent = 'All Labels ▾';
+    } else if (sel.length === 1) {
+      var lbl = state.boardLabels.filter(function (l) { return l.id === sel[0]; })[0];
+      btn.textContent = (lbl ? (lbl.name || 'Label') : 'Label') + ' ▾';
+    } else {
+      btn.textContent = sel.length + ' Labels ▾';
+    }
+  }
+
+  // ─── Members Filter Multi-Select Dropdown ────────────────────────────────
+
+  function buildMembersFilterDropdown() {
+    var btn      = document.getElementById('members-filter-btn');
+    var dropdown = document.getElementById('members-filter-dropdown');
+    if (!btn || !dropdown) return;
+
+    dropdown.innerHTML = '';
+
+    Object.keys(state.members).forEach(function (memberId) {
+      var fullName = state.members[memberId];
+      var row = document.createElement('label');
+      row.className = 'col-toggle-item';
+
+      var cb = document.createElement('input');
+      cb.type    = 'checkbox';
+      cb.value   = memberId;
+      cb.checked = state.filters.members.indexOf(memberId) !== -1;
+
+      cb.addEventListener('change', function () {
+        if (cb.checked) {
+          if (state.filters.members.indexOf(memberId) === -1) {
+            state.filters.members.push(memberId);
+          }
+        } else {
+          state.filters.members = state.filters.members.filter(function (id) { return id !== memberId; });
+        }
+        updateMembersFilterBtn();
+        renderTableBody();
+      });
+
+      var initials = fullName.split(' ').map(function (n) { return n[0]; }).join('').toUpperCase().slice(0, 2);
+      var avatar = document.createElement('span');
+      avatar.className = 'member-avatar';
+      avatar.textContent = initials;
+      avatar.title = fullName;
+      avatar.style.flexShrink = '0';
+
+      row.appendChild(cb);
+      row.appendChild(avatar);
+      row.appendChild(document.createTextNode(' ' + fullName));
+      dropdown.appendChild(row);
+    });
+
+    if (!btn.dataset.membersFilterListenerAttached) {
+      btn.dataset.membersFilterListenerAttached = 'true';
+
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dropdown.classList.toggle('hidden');
+      });
+
+      document.addEventListener('click', function () {
+        dropdown.classList.add('hidden');
+      });
+
+      dropdown.addEventListener('click', function (e) { e.stopPropagation(); });
+    }
+  }
+
+  function updateMembersFilterBtn() {
+    var btn = document.getElementById('members-filter-btn');
+    if (!btn) return;
+    var sel = state.filters.members;
+    if (sel.length === 0) {
+      btn.textContent = 'All Members ▾';
+    } else if (sel.length === 1) {
+      btn.textContent = (state.members[sel[0]] || 'Member') + ' ▾';
+    } else {
+      btn.textContent = sel.length + ' Members ▾';
     }
   }
 

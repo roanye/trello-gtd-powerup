@@ -137,8 +137,10 @@ html, body {
 
 #columns-dropdown.hidden { display: none; }
 
-/* List filter multi-select shares the same dropdown styles */
-#list-filter-dropdown {
+/* List / Labels / Members filter multi-select dropdowns share the same styles */
+#list-filter-dropdown,
+#labels-filter-dropdown,
+#members-filter-dropdown {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
@@ -152,7 +154,12 @@ html, body {
   z-index: 100;
   padding: 6px 0;
 }
-#list-filter-dropdown.hidden { display: none; }
+#list-filter-dropdown.hidden,
+#labels-filter-dropdown.hidden,
+#members-filter-dropdown.hidden { display: none; }
+
+/* Label chip inside filter dropdown row */
+#labels-filter-dropdown .label-chip { pointer-events: none; }
 
 .col-toggle-item {
   display: flex;

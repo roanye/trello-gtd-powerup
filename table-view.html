@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>GTD Table View</title>
-  <link rel="stylesheet" href="css/table.css?v=18">
+  <link rel="stylesheet" href="css/table.css?v=19">
   <script src="https://p.trellocdn.com/power-up.min.js"></script>
 </head>
 <body>
@@ -16,6 +16,20 @@
         <div id="list-filter-wrap" style="position:relative;">
           <button id="list-filter-btn" class="toolbar-btn">All Lists ▾</button>
           <div id="list-filter-dropdown" class="hidden">
+            <!-- Populated dynamically after data loads -->
+          </div>
+        </div>
+
+        <div id="labels-filter-wrap" style="position:relative;">
+          <button id="labels-filter-btn" class="toolbar-btn">All Labels ▾</button>
+          <div id="labels-filter-dropdown" class="hidden">
+            <!-- Populated dynamically after data loads -->
+          </div>
+        </div>
+
+        <div id="members-filter-wrap" style="position:relative;">
+          <button id="members-filter-btn" class="toolbar-btn">All Members ▾</button>
+          <div id="members-filter-dropdown" class="hidden">
             <!-- Populated dynamically after data loads -->
           </div>
         </div>
@@ -59,7 +73,7 @@
 
     <div id="cell-popover" class="hidden"></div>
   </div>
-  <script src="js/config.js?v=18"></script>
-  <script src="js/table.js?v=18"></script>
+  <script src="js/config.js?v=19"></script>
+  <script src="js/table.js?v=19"></script>
 </body>
 </html>
